@@ -9,9 +9,16 @@ import { User } from 'src/schemas/user.schema';
 import { SignUpDto } from '../../DTOs/SignUpDto';
 import { SignInDto } from '../../DTOs/SignInDto';
 import * as bcrypt from 'bcrypt';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import * as jwt from 'jsonwebtoken';
 @Injectable()
 export class AuthService {
-  constructor(@InjectModel(User.name) private UserModel: Model<User>) {}
+  constructor(
+    @InjectModel(User.name) private UserModel: Model<User>,
+    // private jwtService: JwtService,
+    private configService: ConfigService,
+  ) {}
   async createUser(createUserDto: SignUpDto): Promise<object> {
     const user = await this.UserModel.findOne({ email: createUserDto.email });
     if (user) {
@@ -41,7 +48,13 @@ export class AuthService {
     if (!isMatch) {
       throw new ConflictException('The password you entered is incorrect');
     } else {
-      return { email: loginUserDto.email };
+      const payload = { sub: user.email };
+      const token = jwt.sign(
+        payload,
+        this.configService.getOrThrow<string>('JWT_SECRET'),
+      );
+
+      return { token };
     }
   }
 }

@@ -1,15 +1,18 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { UsersModule } from './modules/users/users.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './modules/auth/auth.module';
-import jwtConfig from 'jwt.config';
 import { JwtModule } from '@nestjs/jwt';
+import { LoggerMiddleware } from './middlewares/logger.middleware';
+import { UsersController } from './modules/users/users.controller';
+import { isAuthenticatedMiddleware } from './middlewares/isAuthenticated.middleware';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: ['.env'],
     }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
@@ -19,11 +22,23 @@ import { JwtModule } from '@nestjs/jwt';
         uri: configService.get<string>('DB_URI'),
       }),
     }),
-    JwtModule.registerAsync(jwtConfig.asProvider()), // returns the jwtConfig
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'), // Retrieve JWT secret from environment
+
+        signOptions: { expiresIn: '120m' },
+      }),
+      inject: [ConfigService],
+    }),
     AuthModule,
     UsersModule,
   ],
   controllers: [],
   providers: [],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(isAuthenticatedMiddleware).forRoutes(UsersController);
+  }
+}

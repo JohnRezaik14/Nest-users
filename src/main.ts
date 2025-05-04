@@ -15,6 +15,7 @@ async function bootstrap() {
     )
     .setVersion('1.0')
     .addTag('ITI OS ALex NestJS')
+    .addBearerAuth()
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
