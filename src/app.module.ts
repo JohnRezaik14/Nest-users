@@ -3,6 +3,8 @@ import { UsersModule } from './modules/users/users.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './modules/auth/auth.module';
+import jwtConfig from 'jwt.config';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -17,6 +19,7 @@ import { AuthModule } from './modules/auth/auth.module';
         uri: configService.get<string>('DB_URI'),
       }),
     }),
+    JwtModule.registerAsync(jwtConfig.asProvider()), // returns the jwtConfig
     AuthModule,
     UsersModule,
   ],

@@ -8,44 +8,16 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from 'src/schemas/user.schema';
-import { SignUpDto } from '../../DTOs/SignUpDto';
-import { SignInDto } from '../../DTOs/SignInDto';
-import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
   constructor(@InjectModel(User.name) private UserModel: Model<User>) {}
-
-  async createUser(createUserDto: SignUpDto): Promise<object> {
-    const user = await this.UserModel.findOne({ email: createUserDto.email });
-    if (user) {
-      throw new ConflictException('Email is already in use');
-    }
+  async findAll(): Promise<User[]> {
     try {
-      const hashedpassword = await bcrypt.hash(createUserDto.password, 10);
-      const user = { ...createUserDto, password: hashedpassword };
-      const createdUser = new this.UserModel(user);
-      await createdUser.save();
-      return {
-        email: createdUser.email,
-        fullName: createdUser.fullName,
-        age: createdUser.age,
-        mobileNumber: createdUser.mobileNumber,
-      };
+      const users = await this.UserModel.find().exec();
+      return users;
     } catch (error) {
-      throw new InternalServerErrorException('An unexpected error occurred');
-    }
-  }
-  async loginUser(loginUserDto: SignInDto): Promise<object> {
-    const user = await this.UserModel.findOne({ email: loginUserDto.email });
-    if (!user) {
-      throw new ConflictException('This email is not registered yet');
-    }
-    const isMatch = await bcrypt.compare(loginUserDto.password, user.password);
-    if (!isMatch) {
-      throw new ConflictException('The password you entered is incorrect');
-    } else {
-      return { email: loginUserDto.email };
+      throw new InternalServerErrorException('Failed to retrieve users');
     }
   }
 }
